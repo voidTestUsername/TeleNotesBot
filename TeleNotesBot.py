@@ -14,12 +14,6 @@ connection = psycopg2.connect(
                 database=db_name
             )
 
-def symbol_shield(str_):
-    str_ = str_.replace('\\', '\\\\')
-    str_ = str_.replace('\'', '\\\'')
-    str_ = str_.replace('\"', '\\\"')
-    return(str_)
-
 @bot.message_handler(commands=['start'])
 def start(message):
     markup_inline = types.InlineKeyboardMarkup()
@@ -46,19 +40,21 @@ def bot_answer(call):
 
     if isinstance(int(user_id), int) == True:
 
+        user_id = int(user_id)
+
         if call.data == 'create':
             msg = bot.send_message(call.message.chat.id, 'Отправьте текст заметки')
         
             def get_note(message):
                 msg_text = str(message.text)
                 msg_date = str(datetime.datetime.now())
-                cursor.execute("INSERT INTO notes (user_id, note_text, note_date) VALUES (" + user_id + ", '" + symbol_shield(msg_text) + "', '" + symbol_shield(msg_date) + "')")
+                cursor.execute("INSERT INTO notes (user_id, note_text, note_date) VALUES (%d, '%s', '%s')" %(user_id, msg_text, msg_date))
                 bot.send_message(message.chat.id, 'Запись успешно сохранена!')
                 start(call.message)
             bot.register_next_step_handler(msg, get_note)
 
         elif call.data == 'read_all':
-            cursor.execute("SELECT note_text, TO_CHAR(note_date, 'YYYY-MM-DD \nhh:mm') FROM notes WHERE user_id = " + user_id)
+            cursor.execute("SELECT note_text, TO_CHAR(note_date, 'YYYY-MM-DD \nhh:mm') FROM notes WHERE user_id = %d" %(user_id))
             answer = ''
             for col in cursor.fetchall():
                 answer += str(col[1]) + '\n\n' + str(col[0]) + '\n\n\n\n'
@@ -71,7 +67,7 @@ def bot_answer(call):
             def get_month(message):
                 msg_month = str(message.text)
                 try:
-                    cursor.execute("SELECT note_text, note_date FROM notes WHERE user_id = " + user_id + " AND TO_CHAR(note_date, 'YYYY-MM') LIKE '" + symbol_shield(msg_month) + "'")
+                    cursor.execute("SELECT note_text, note_date FROM notes WHERE user_id = %d AND TO_CHAR(note_date, 'YYYY-MM') LIKE '%s'" %(user_id, msg_month))
                     month_answer = ''
                     for month_col in cursor.fetchall():
                         month_answer += str(month_col[1].strftime("%Y-%m-%d \n%H:%M")) + '\n\n' + str(month_col[0]) + '\n\n\n\n'
@@ -86,7 +82,7 @@ def bot_answer(call):
         
             def get_day(message):
                 msg_day = str(message.text)
-                cursor.execute("SELECT note_text, note_date FROM notes WHERE user_id = " + user_id + " AND TO_CHAR(note_date, 'YYYY-MM-DD') LIKE '" + symbol_shield(msg_day) + "'")
+                cursor.execute("SELECT note_text, note_date FROM notes WHERE user_id = %d AND TO_CHAR(note_date, 'YYYY-MM-DD') LIKE '%s'" %(user_id, msg_day))
                 day_answer = msg_day + '\n\n'
                 day_get = False
                 for day_col in cursor.fetchall():
