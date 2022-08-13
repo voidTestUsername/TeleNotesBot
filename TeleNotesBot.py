@@ -7,6 +7,13 @@ from telebot import types
 
 bot = telebot.TeleBot(bot_token)
 
+connection = psycopg2.connect(
+                host=host,
+                user=user,
+                password=password,
+                database=db_name
+            )
+
 def symbol_shield(str_):
     str_ = str_.replace('\\', '\\\\')
     str_ = str_.replace('\'', '\\\'')
@@ -30,12 +37,6 @@ def start(message):
 @bot.callback_query_handler(func = lambda call: True)
 def bot_answer(call):
 
-    connection = psycopg2.connect(
-                host=host,
-                user=user,
-                password=password,
-                database=db_name
-            )
     cursor = connection.cursor()
 
     connection.autocommit = True
