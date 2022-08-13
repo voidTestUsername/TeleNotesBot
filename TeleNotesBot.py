@@ -7,6 +7,12 @@ from telebot import types
 
 bot = telebot.TeleBot(bot_token)
 
+def symbol_shield(str_):
+    str_ = str_.replace('\\', '\\\\')
+    str_ = str_.replace('\'', '\\\'')
+    str_ = str_.replace('\"', '\\\"')
+    return(str_)
+
 @bot.message_handler(commands=['start'])
 def start(message):
     markup_inline = types.InlineKeyboardMarkup()
