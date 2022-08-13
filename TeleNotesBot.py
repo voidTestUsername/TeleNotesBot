@@ -43,7 +43,7 @@ def bot_answer(call):
     list_id = [call.message.chat.id]
     user_id = ' '.join([str(elem) for elem in list_id])
 
-    if isinstance(user_id, int) == True:
+    if isinstance(int(user_id), int) == True:
 
         if call.data == 'create':
             msg = bot.send_message(call.message.chat.id, 'Отправьте текст заметки')
