@@ -1,11 +1,13 @@
 from telebot import types
 import datetime
+import os
 
 class Bot_Command():
+    saved_text = ' '
     def execute(self):
         raise(NotImplementedError)
 
-def start(message, bot):
+def start(message, bot, saved_text):
     markup_inline = types.InlineKeyboardMarkup()
     new_note = types.InlineKeyboardButton(text='Новая заметка', callback_data='create')
     all_notes = types.InlineKeyboardButton(text='Все заметки', callback_data='read_all')
@@ -15,6 +17,10 @@ def start(message, bot):
     markup_inline.add(all_notes)
     markup_inline.add(month_notes)
     markup_inline.add(day_notes)
+
+    if saved_text != '0':
+        download_note = types.InlineKeyboardButton(text='Скачать .txt', callback_data='download_txt')
+        markup_inline.add(download_note)
 
     bot.send_message(message.chat.id, 'Меню', reply_markup=markup_inline)
 
@@ -26,7 +32,7 @@ class NoteCreating(Bot_Command):
             msg_date = str(datetime.datetime.now())
             cursor.execute("INSERT INTO notes (user_id, note_text, note_date) VALUES (%d, '%s', '%s')" %(user_id, msg_text, msg_date))
             bot.send_message(message.chat.id, 'Запись успешно сохранена!')
-            start(message, bot)
+            start(message, bot, '0')
         bot.register_next_step_handler(msg, get_note)
 
 class ReadingAll(Bot_Command):
@@ -36,7 +42,8 @@ class ReadingAll(Bot_Command):
         for col in cursor.fetchall():
             answer += str(col[1]) + '\n\n' + str(col[0]) + '\n\n\n\n'
         bot.send_message(message.chat.id, answer)
-        start(message, bot)
+        Bot_Command.saved_text = 'Все заметки\n\n' + answer
+        start(message, bot, Bot_Command.saved_text)
 
 class ReadingMonth(Bot_Command):
     def execute(self, bot, message, cursor, user_id):
@@ -48,10 +55,12 @@ class ReadingMonth(Bot_Command):
                 month_answer = ''
                 for month_col in cursor.fetchall():
                     month_answer += str(month_col[1].strftime("%Y-%m-%d \n%H:%M")) + '\n\n' + str(month_col[0]) + '\n\n\n\n'
+                Bot_Command.saved_text = 'Заметки за ' + message.text + '\n\n' + month_answer
                 bot.send_message(message.chat.id, month_answer)
             except:
+                Bot_Command.saved_text = '0'
                 bot.send_message(message.chat.id, 'Ошибка: данные не обнаружены')
-            start(message, bot)
+            start(message, bot, Bot_Command.saved_text)
         bot.register_next_step_handler(msg, get_month)
 
 class ReadingDay(Bot_Command):
@@ -66,8 +75,22 @@ class ReadingDay(Bot_Command):
                 day = True
                 day_answer += str(day_col[1].strftime("%H:%M")) + '\n\n' + str(day_col[0]) + '\n\n\n\n'
             if day == True:
+                Bot_Command.saved_text = 'Заметки за ' + message.text + '\n\n' + day_answer
                 bot.send_message(message.chat.id, day_answer)
             else:
+                Bot_Command.saved_text = '0'
                 bot.send_message(message.chat.id, 'Ошибка: данные не обнаружены')
-            start(message, bot)
+            start(message, bot, Bot_Command.saved_text)
         bot.register_next_step_handler(msg, get_day)
+
+class DownloadingNote(Bot_Command):
+    def execute_special(self, bot, message, filename, saved_text):
+        filename += '.txt'
+        data_f = open(filename, 'w', encoding='utf-8')
+        data_f.write(saved_text)
+        data_f.close()
+        bot.send_document(message.chat.id, document=open(filename, 'rb'))
+        path = os.path.join(os.path.abspath(os.path.dirname(filename)), filename)
+        os.remove(path)
+        bot.send_message(message.chat.id, 'Файл готов!')
+        start(message, bot, '0')

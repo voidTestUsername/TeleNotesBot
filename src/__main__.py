@@ -17,11 +17,14 @@ cursor = connection.cursor()
 connection.autocommit = True
 
 def main():
-    COMMANDS = {'create': src.bot_module.NoteCreating(), 'read_all': src.bot_module.ReadingAll(), 'read_month': src.bot_module.ReadingMonth(), 'read_day': src.bot_module.ReadingDay()}
+
+    COMMANDS = {'create': src.NoteCreating(), 'read_all': src.ReadingAll(),
+                'read_month': src.ReadingMonth(), 'read_day': src.ReadingDay(),
+                'download_txt': src.DownloadingNote()}
 
     @bot.message_handler(commands=['start'])
     def start_shell(message):
-        src.bot_module.start(message, bot)
+        src.bot_module.start(message, bot, '0')
 
     @bot.callback_query_handler(func = lambda call: True)
     def answer(call):
@@ -31,7 +34,12 @@ def main():
         if isinstance(int(user_id), int) == True:
             user_id = int(user_id)
             bot_command = COMMANDS[call.data]
-            bot_command.execute(bot, call.message, cursor, user_id)
+
+            if not isinstance(bot_command, src.DownloadingNote):
+                bot_command.execute(bot, call.message, cursor, user_id)
+            else:
+                filename = bot_command.saved_text.split('\n')[0]
+                bot_command.execute_special(bot, call.message, filename, bot_command.saved_text)
         else:
             bot.send_message(call.message.chat.id, 'Ошибка: пользователь не найден')
             start_shell(call.message)
