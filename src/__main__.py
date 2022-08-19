@@ -2,6 +2,7 @@ import telebot
 import psycopg2
 import src.bot_module
 
+
 from config import host, user, password, db_name, bot_token
 
 bot = telebot.TeleBot(bot_token)
