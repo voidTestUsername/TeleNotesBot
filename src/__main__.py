@@ -1,9 +1,8 @@
 import telebot
 import psycopg2
-import src
+import src.bot_module
 
 from config import host, user, password, db_name, bot_token
-from telebot import types
 
 bot = telebot.TeleBot(bot_token)
 
@@ -24,7 +23,20 @@ def main():
 
     @bot.message_handler(commands=['start'])
     def start_shell(message):
-        src.bot_module.start(message, bot, '0')
+        src.start(message, bot, '0')
+
+    @bot.message_handler(regexp='дневник')
+    def start_shell2(message):
+        list_id = [message.chat.id]
+        user_id = ' '.join([str(elem) for elem in list_id])
+
+        if isinstance(int(user_id), int) == True:
+            user_id = int(user_id)
+            bot_command = bot_module.NoteCreating()
+            bot_command.execute(bot, message, cursor, user_id)
+        else:
+            bot.send_message(message.chat.id, 'Ошибка: пользователь не найден')
+            start_shell(message)
 
     @bot.callback_query_handler(func = lambda call: True)
     def answer(call):
