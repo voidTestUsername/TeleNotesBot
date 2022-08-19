@@ -32,7 +32,7 @@ def main():
 
         if isinstance(int(user_id), int) == True:
             user_id = int(user_id)
-            bot_command = bot_module.NoteCreating()
+            bot_command = src.NoteCreating()
             bot_command.execute(bot, message, cursor, user_id)
         else:
             bot.send_message(message.chat.id, 'Ошибка: пользователь не найден')
