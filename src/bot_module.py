@@ -10,13 +10,21 @@ class BotCommand:
         raise (NotImplementedError)
 
 
-def start(message, bot, saved_text):
-    markup_inline = telebot.types.InlineKeyboardMarkup()
-    new_note = telebot.types.InlineKeyboardButton(text='Новая заметка', callback_data='create')
+def send_answer(message, bot, saved_text):
+
+    if saved_text != '0':
+        markup_inline = telebot.types.InlineKeyboardMarkup()
+        download_note = telebot.types.InlineKeyboardButton(text='Скачать .txt', callback_data='download_txt')
+        markup_inline.add(download_note)
+        bot.send_message(message.chat.id, saved_text, reply_markup=markup_inline)
+
+
+def menu(message, bot, saved_text):
+    markup_inline = telebot.types.ReplyKeyboardMarkup()
+    # new_note = telebot.types.InlineKeyboardButton(text='Новая заметка', callback_data='create')
     all_notes = telebot.types.InlineKeyboardButton(text='Все заметки', callback_data='read_all')
     month_notes = telebot.types.InlineKeyboardButton(text='Заметки за месяц', callback_data='read_month')
     day_notes = telebot.types.InlineKeyboardButton(text='Заметки за сегодня', callback_data='read_day')
-    markup_inline.add(new_note)
     markup_inline.add(all_notes)
     markup_inline.add(month_notes)
     markup_inline.add(day_notes)
@@ -35,7 +43,7 @@ class NoteCreating(BotCommand):
         cursor.execute("INSERT INTO notes (user_id, note_text, note_date) VALUES (%d, '%s', '%s')" % (
             user_id, msg_text, msg_date))
         bot.send_message(message.chat.id, 'Запись успешно сохранена!')
-        start(message, bot, '0')
+        send_answer(message, bot, '0')
 
 
 class ReadingAll(BotCommand):
@@ -45,10 +53,11 @@ class ReadingAll(BotCommand):
                 user_id))
         answer = ''
         for col in cursor.fetchall():
-            answer += str(col[1]) + '\n\n' + str(col[0]) + '\n\n\n\n'# и хард код будет дублироваться так несколько раз, а если мне захочется поменять формат вывода?
+            answer += str(col[1]) + '\n\n' + str(col[
+                                                     0]) + '\n\n\n\n'  # и хард код будет дублироваться так несколько раз, а если мне захочется поменять формат вывода?
         bot.send_message(message.chat.id, answer)
-        BotCommand.saved_text = 'Все заметки\n\n' + answer # думаю ответ может получиться через чур большим, лучше оставить возможность только скачивать подобные сообщения, или давать возможность пользователю выбирать, когда нужно выводить все, когда нет
-        start(message, bot, BotCommand.saved_text)
+        BotCommand.saved_text = 'Все заметки\n\n' + answer  # думаю ответ может получиться через чур большим, лучше оставить возможность только скачивать подобные сообщения, или давать возможность пользователю выбирать, когда нужно выводить все, когда нет
+        send_answer(message, bot, BotCommand.saved_text)
 
 
 class ReadingMonth(BotCommand):
@@ -70,7 +79,7 @@ class ReadingMonth(BotCommand):
             except:
                 BotCommand.saved_text = '0'
                 bot.send_message(message.chat.id, 'Ошибка: данные не обнаружены')
-            start(message, bot, BotCommand.saved_text)
+            send_answer(message, bot, BotCommand.saved_text)
 
         bot.register_next_step_handler(msg, get_month)
 
@@ -86,11 +95,12 @@ class ReadingDay(BotCommand):
             answer += str(col[1]) + '\n\n' + str(col[0]) + '\n\n\n\n'
         bot.send_message(message.chat.id, answer)
         BotCommand.saved_text = 'Заметки за сегодня\n\n' + answer
-        start(message, bot, BotCommand.saved_text)
+        send_answer(message, bot, BotCommand.saved_text)
 
 
 class DownloadingNote(BotCommand):
-    def execute_special(self, bot, message, filename, saved_text): # что-то явно не так, подумай как оставить один метод
+    def execute_special(self, bot, message, filename,
+                        saved_text):  # что-то явно не так, подумай как оставить один метод
         filename += '.txt'
         data_f = open(filename, 'w', encoding='utf-8')
         data_f.write(saved_text)
@@ -99,4 +109,4 @@ class DownloadingNote(BotCommand):
         path = os.path.join(os.path.abspath(os.path.dirname(filename)), filename)
         os.remove(path)
         bot.send_message(message.chat.id, 'Файл готов!')
-        start(message, bot, '0')
+        send_answer(message, bot, '0')
