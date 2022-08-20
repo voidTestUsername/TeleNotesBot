@@ -30,17 +30,12 @@ def start(message, bot, saved_text):
 
 class NoteCreating(BotCommand):
     def execute(self, bot, message, cursor, user_id):
-        msg = bot.send_message(message.chat.id, 'Отправьте текст заметки')
-
-        def get_note(message):
-            msg_text = str(message.text)
-            msg_date = str(datetime.datetime.now())
-            cursor.execute("INSERT INTO notes (user_id, note_text, note_date) VALUES (%d, '%s', '%s')" % (
-                user_id, msg_text, msg_date))
-            bot.send_message(message.chat.id, 'Запись успешно сохранена!')
-            start(message, bot, '0')
-
-        bot.register_next_step_handler(msg, get_note)
+        msg_text = str(message.text)
+        msg_date = str(datetime.datetime.now())
+        cursor.execute("INSERT INTO notes (user_id, note_text, note_date) VALUES (%d, '%s', '%s')" % (
+            user_id, msg_text, msg_date))
+        bot.send_message(message.chat.id, 'Запись успешно сохранена!')
+        start(message, bot, '0')
 
 
 class ReadingAll(BotCommand):
@@ -50,9 +45,9 @@ class ReadingAll(BotCommand):
                 user_id))
         answer = ''
         for col in cursor.fetchall():
-            answer += str(col[1]) + '\n\n' + str(col[0]) + '\n\n\n\n'
+            answer += str(col[1]) + '\n\n' + str(col[0]) + '\n\n\n\n'# и хард код будет дублироваться так несколько раз, а если мне захочется поменять формат вывода?
         bot.send_message(message.chat.id, answer)
-        BotCommand.saved_text = 'Все заметки\n\n' + answer
+        BotCommand.saved_text = 'Все заметки\n\n' + answer # думаю ответ может получиться через чур большим, лучше оставить возможность только скачивать подобные сообщения, или давать возможность пользователю выбирать, когда нужно выводить все, когда нет
         start(message, bot, BotCommand.saved_text)
 
 
@@ -95,7 +90,7 @@ class ReadingDay(BotCommand):
 
 
 class DownloadingNote(BotCommand):
-    def execute_special(self, bot, message, filename, saved_text):
+    def execute_special(self, bot, message, filename, saved_text): # что-то явно не так, подумай как оставить один метод
         filename += '.txt'
         data_f = open(filename, 'w', encoding='utf-8')
         data_f.write(saved_text)

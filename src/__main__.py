@@ -5,7 +5,6 @@ from bot_module import ReadingAll, NoteCreating, ReadingMonth, ReadingDay, Downl
 from config import host, user as db_user, password, db_name, bot_token
 
 bot = telebot.TeleBot(bot_token)
-bot.infinity_polling()
 
 connection = psycopg2.connect(
     host=host,
@@ -26,23 +25,23 @@ def main():
     def start_shell(message):
         start(message, bot, '0')
 
-    @bot.message_handler(regexp='дневник')
+    @bot.message_handler(regexp='(дневник|заметка) (.*)')
     def start_shell2(message):
         list_id = [message.chat.id]
-        user_id = ' '.join([str(elem) for elem in list_id])
+        user_id = ' '.join([str(elem) for elem in list_id]) # Что здесь происходит? Почему нельзя взять просто message.chat.id
 
         if isinstance(int(user_id), int):
             user_id = int(user_id)
             bot_command = NoteCreating()
             bot_command.execute(bot, message, cursor, user_id)
         else:
-            bot.send_message(message.chat.id, 'Ошибка: пользователь не найден')
+            bot.send_message(message.chat.id, 'Ошибка: пользователь не найден') # это сообщение вызвает вопросы
             start_shell(message)
 
     @bot.callback_query_handler(func=lambda call: True)
     def answer(call):
         list_id = [call.message.chat.id]
-        user_id = ' '.join([str(elem) for elem in list_id])
+        user_id = ' '.join([str(elem) for elem in list_id]) # Что здесь происходит? Почему нельзя взять просто message.chat.id + дублирование
 
         if isinstance(int(user_id), int):
             user_id = int(user_id)
@@ -51,7 +50,7 @@ def main():
             if not isinstance(bot_command, DownloadingNote):
                 bot_command.execute(bot, call.message, cursor, user_id)
             else:
-                filename = bot_command.saved_text.split('\n')[0]
+                filename = bot_command.saved_text.split('\n')[0] # есть такое подозрение, что файл будет доступен всем, т.к. у нас всего один экземпляр объекта
                 bot_command.execute_special(bot, call.message, filename, bot_command.saved_text)
         else:
             bot.send_message(call.message.chat.id, 'Ошибка: пользователь не найден')
@@ -61,4 +60,7 @@ def main():
 
 
 if __name__ == "__main__":
+    print("Start work!")
     main()
+    bot.polling(none_stop=True)
+
