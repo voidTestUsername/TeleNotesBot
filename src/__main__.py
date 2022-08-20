@@ -1,53 +1,54 @@
 import telebot
 import psycopg2
-import src.bot_module
+from bot_module import ReadingAll, NoteCreating, ReadingMonth, ReadingDay, DownloadingNote, start
 
-from config import host, user, password, db_name, bot_token
+from config import host, user as db_user, password, db_name, bot_token
 
 bot = telebot.TeleBot(bot_token)
+bot.infinity_polling()
 
 connection = psycopg2.connect(
-                host=host,
-                user=user,
-                password=password,
-                database=db_name
-            )
+    host=host,
+    user=db_user,
+    password=password,
+    database=db_name
+)
 cursor = connection.cursor()
 connection.autocommit = True
 
-def main():
 
-    COMMANDS = {'create': src.NoteCreating(), 'read_all': src.ReadingAll(),
-                'read_month': src.ReadingMonth(), 'read_day': src.ReadingDay(),
-                'download_txt': src.DownloadingNote()}
+def main():
+    COMMANDS = {'create': NoteCreating(), 'read_all': ReadingAll(),
+                'read_month': ReadingMonth(), 'read_day': ReadingDay(),
+                'download_txt': DownloadingNote()}
 
     @bot.message_handler(commands=['start'])
     def start_shell(message):
-        src.start(message, bot, '0')
+        start(message, bot, '0')
 
     @bot.message_handler(regexp='дневник')
     def start_shell2(message):
         list_id = [message.chat.id]
         user_id = ' '.join([str(elem) for elem in list_id])
 
-        if isinstance(int(user_id), int) == True:
+        if isinstance(int(user_id), int):
             user_id = int(user_id)
-            bot_command = src.NoteCreating()
+            bot_command = NoteCreating()
             bot_command.execute(bot, message, cursor, user_id)
         else:
             bot.send_message(message.chat.id, 'Ошибка: пользователь не найден')
             start_shell(message)
 
-    @bot.callback_query_handler(func = lambda call: True)
+    @bot.callback_query_handler(func=lambda call: True)
     def answer(call):
         list_id = [call.message.chat.id]
         user_id = ' '.join([str(elem) for elem in list_id])
 
-        if isinstance(int(user_id), int) == True:
+        if isinstance(int(user_id), int):
             user_id = int(user_id)
             bot_command = COMMANDS[call.data]
 
-            if not isinstance(bot_command, src.DownloadingNote):
+            if not isinstance(bot_command, DownloadingNote):
                 bot_command.execute(bot, call.message, cursor, user_id)
             else:
                 filename = bot_command.saved_text.split('\n')[0]
@@ -57,6 +58,7 @@ def main():
             start_shell(call.message)
 
     bot.polling()
+
 
 if __name__ == "__main__":
     main()
